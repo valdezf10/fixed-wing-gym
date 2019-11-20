@@ -208,7 +208,7 @@ class FixedWingAircraft(gym.Env):
 
         self._curriculum_level = None
         self.use_curriculum = True
-        self.set_curriculum_level(0)
+        self.set_curriculum_level(1)
 
     def seed(self, seed=None):
         """
@@ -236,7 +236,7 @@ class FixedWingAircraft(gym.Env):
                 convert_to_radians = state.pop("convert_to_radians", False)
                 for prop, val in state.items():
                     if val is not None:
-                        if any([m in prop for m in ["min", "max"]]):
+                        if "constraint" not in prop and any([m in prop for m in ["min", "max"]]):
                             midpoint = (state[prop[:-3] + "max"] + state[prop[:-3] + "min"]) / 2
                             val = midpoint - self._curriculum_level * (midpoint - val)
                         if convert_to_radians:
@@ -614,9 +614,9 @@ class FixedWingAircraft(gym.Env):
         if self.training and not self.render_on_reset:
             self.render_on_reset = True
             self.render_on_reset_kw = {"mode": mode, "show": show, "block": block, "close": close, "save_path": save_path}
-            return
+            return None
 
-        if mode == "plot":
+        if mode == "plot" or mode == "rgb_array":
             if self.cfg["render"]["plot_target"]:
                 targets = {k: {"data": np.array(v)} for k, v in self.history["target"].items()}
                 if self.cfg["render"]["plot_goal"]:
@@ -661,17 +661,20 @@ class FixedWingAircraft(gym.Env):
                 else:
                     plt.savefig(save_path, bbox_inches="tight")
 
-            if show:
-                plt.show(block=block)
-                if close:
-                    plt.close(self.viewer["fig"])
-                    self.viewer = None
+            if mode == "rbg_array":
+                return
             else:
-                if close:
-                    plt.close(self.viewer["fig"])
-                    self.viewer = None
+                if show:
+                    plt.show(block=block)
+                    if close:
+                        plt.close(self.viewer["fig"])
+                        self.viewer = None
                 else:
-                    return self.viewer["fig"]
+                    if close:
+                        plt.close(self.viewer["fig"])
+                        self.viewer = None
+                    else:
+                        return self.viewer["fig"]
 
         elif mode == "animation":
             raise NotImplementedError
