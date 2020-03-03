@@ -225,7 +225,7 @@ class FixedWingAircraft(gym.Env):
         Set the curriculum level of the environment, e.g. for starting with simple tasks and progressing to more difficult
         scenarios as the agent becomes increasingly proficient.
 
-        :param level: (int) the curriculum level
+        :param level: (int) the curriculum level between 0 and 1.
         """
         assert 0 <= level <= 1
         self._curriculum_level = level
@@ -516,7 +516,7 @@ class FixedWingAircraft(gym.Env):
             if delta is not None:
                 var_val = self.simulator.state[target_var_name].value
                 low = max(low, var_val - delta)
-                high = min(high, var_val + delta)
+                high = max(min(high, var_val + delta), low)
 
             if self.sampler is None:
                 initial_value = self.np_random.uniform(low, high)
@@ -901,7 +901,8 @@ class FixedWingAircraft(gym.Env):
 
     def get_simulator_parameters(self, normalize=True):
         res = []
-        for param in self.cfg["simulator"]["model"]["parameters"]:
+        parameters = self.cfg["simulator"].get("model", {}).get("parameters", [])
+        for param in parameters:
             val = self.simulator.params[param["name"]]
             if normalize:
                 var_type = self.cfg["simulator"]["model"].get("var_type", "relative")
